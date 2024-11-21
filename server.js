@@ -1,76 +1,73 @@
-const postForm = document.getElementById('postForm');
-const postList = document.getElementById('postList');
+const express = require('express');
+const path = require('path');
 
-const loadPosts = async () => {
+const app = express();
+const PORT = 3000; // Вказуємо порт без .env
+
+// Налаштування для обробки форм
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Сервіруємо статичні файли (наприклад, index.html)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Роут для отримання всіх постів
+let posts = []; // Замість бази даних, використовуємо масив для зберігання постів
+
+app.get('/posts', (req, res) => {
+  res.json(posts);
+});
+
+// Роут для створення нового поста
+app.post('/posts', (req, res) => {
   try {
-    const res = await fetch('/posts');
-    const posts = await res.json();
-    postList.innerHTML = posts
-      .map(
-        (post) => `
-        <li class="post-item" id="post-${post._id}">
-          <h3>${post.title}</h3>
-          <p>${post.description}</p>
-          <p><strong>Author:</strong> ${post.author}</p>
-          <button onclick="deletePost('${post._id}')">Delete</button>
-          <button onclick="editPost('${post._id}', '${post.title}', '${post.description}', '${post.author}')">Edit</button>
-        </li>
-      `
-      )
-      .join('');
-  } catch (error) {
-    console.error('Error loading posts:', error);
-    postList.innerHTML = `<li>Error loading posts</li>`;
-  }
-};
-
-postForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const title = document.getElementById('title').value;
-  const author = document.getElementById('author').value;
-  const description = document.getElementById('description').value;
-
-  try {
-    const method = postForm.dataset.editing ? 'PUT' : 'POST';
-    const url = postForm.dataset.editing
-      ? `/posts/${postForm.dataset.editing}`
-      : '/posts';
-
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, author, description }),
-    });
-
-    if (!res.ok) {
-      throw new Error('Failed to save post');
-    }
-
-    postForm.reset();
-    delete postForm.dataset.editing; // Скидаємо режим редагування
-    loadPosts();
-  } catch (error) {
-    console.error('Error saving post:', error);
+    const { title, description, author } = req.body;
+    
+    const newPost = { title, description, author, id: posts.length + 1 };
+    posts.push(newPost); // Додаємо новий пост до масиву
+    
+    res.status(201).json(newPost);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-const deletePost = async (id) => {
+// Роут для редагування поста
+app.put('/posts/:id', (req, res) => {
   try {
-    const res = await fetch(`/posts/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      throw new Error('Failed to delete post');
+    const { id } = req.params;
+    const { title, description, author } = req.body;
+
+    const postIndex = posts.findIndex((post) => post.id === parseInt(id));
+    if (postIndex !== -1) {
+      posts[postIndex] = { id: parseInt(id), title, description, author };
+      res.json(posts[postIndex]);
+    } else {
+      res.status(404).json({ error: 'Post not found' });
     }
-    loadPosts();
-  } catch (error) {
-    console.error('Error deleting post:', error);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-};
+});
 
-const editPost = (id, title, description, author) => {
-  document.getElementById('title').value = title;
-  document.getElementById('description').value = description;
-  document.getElementById('author').value = author;
-  postForm.dataset.editing = id; // Зберігаємо ID поста в атрибуті форми
-};
+// Роут для видалення поста
+app.delete('/posts/:id', (req, res) => {
+  try {
+    const { id } = req.params;
 
-loadPosts();
+    const postIndex = posts.findIndex((post) => post.id === parseInt(id));
+    if (postIndex !== -1) {
+      posts.splice(postIndex, 1); // Видаляємо пост
+      res.status(200).json({ message: 'Post deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Post not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Стартуємо сервер
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
