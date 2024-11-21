@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>Post Manager</h1>
+    <button onclick="window.location.href='/posts.html'">Posts</button>
+    <form id="postForm">
+      <input type="text" id="title" placeholder="Назва допису" required>
+      <input type="text" id="author" placeholder="Автор" required>
+      <textarea id="description" placeholder="Опис" required></textarea>
+      <button type="submit">Create Post</button>
+    </form>
+    <ul id="postList"></ul>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
